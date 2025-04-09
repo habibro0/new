@@ -915,27 +915,30 @@ app.get("/users", isAuthorizedUser, async (req, res) => {
   app.get('/order/:id', async (req, res) => {
     const { id } = req.params;
   
-    const order = await Order.findById(id).populate({
-      path: 'items.productId',
-      select: 'title price'
-    });
+    try {
+      const order = await Order.findById(id).populate("items.productId", "title price");
   
-    if (!order) {
-      return res.status(404).send("Order not found");
+      if (!order) {
+        return res.status(404).send("Order not found");
+      }
+  
+      // Optional: Cancel if expired
+      const now = new Date();
+      const expiryTime = new Date(order.createdAt).getTime() + 24 * 60 * 60 * 1000;
+  
+      if (now.getTime() > expiryTime && order.status === "Pending") {
+        order.status = "Cancelled";
+        await order.save();
+      }
+  
+      res.render('listings/orderDetails.ejs', { order });
+  
+    } catch (err) {
+      console.error("Error fetching order:", err);
+      res.status(500).send("Server Error");
     }
-  
-    console.log("Fetched Order:", order);  // Debugging line
-  
-    const now = new Date();
-    const expiryTime = new Date(order.createdAt).getTime() + 24 * 60 * 60 * 1000;
-  
-    if (now.getTime() > expiryTime && order.status === "Pending") {
-      order.status = "Cancelled";
-      await order.save();
-    }
-  
-    res.render('listings/orderDetails.ejs', { order });
   });
+  
   
   app.get('/orders', isLoggedIn, isAuthorizedUser, async (req, res) => {
     try {
