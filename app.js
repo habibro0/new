@@ -881,12 +881,12 @@ app.get("/users", isAuthorizedUser, async (req, res) => {
       return res.redirect("/login");
     }
   
+    const cart = req.session.cart; // ✅ یہ لائن شامل کرو
+  
     if (!cart || cart.length === 0) {
       req.flash("error", "Your cart is empty.");
       return res.redirect("/cart");
     }
-  
-    console.log("User Data:", req.user);  // Debugging line
   
     const { name, contact, address, city, zip } = req.body;
   
@@ -898,11 +898,11 @@ app.get("/users", isAuthorizedUser, async (req, res) => {
         city,
         zip,
         items: cart,
-        user: req.user._id, // آرڈر کو یوزر سے لنک کریں
+        user: req.user._id,
       });
   
       await newOrder.save();
-      cart = []; // آرڈر ہونے کے بعد کارٹ خالی کریں
+      req.session.cart = []; // ✅ Session cart کو خالی کرو
   
       res.redirect(`/order/${newOrder._id}`);
     } catch (err) {
